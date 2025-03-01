@@ -1,5 +1,6 @@
 numpy
 pandas
 matplotlib
-numerapi
-setuptools
+numerapi==2.20.0
+python-dotenv
+pyarrow

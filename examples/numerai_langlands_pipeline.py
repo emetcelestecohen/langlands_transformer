@@ -1,26 +1,48 @@
 import pandas as pd
 import numpy as np
 import numerapi
+from dotenv import load_dotenv
+from langlands_transformer.spectral_drift_monitor import SpectralDriftMonitor
+from langlands_transformer.embedding import spectral_embedding
+from langlands_transformer.symmetry import enforce_symmetry
+from langlands_transformer.propagation import spectral_attention
+
 import os
 
-from langlands_transformer import spectral_embedding, enforce_symmetry, spectral_attention, check_critical_line
-from langlands_transformer.spectral_drift_monitor import SpectralDriftMonitor
+# Load .env file
+load_dotenv()
 
-# Load credentials from environment variables
 PUBLIC_ID = os.getenv("NUMERAI_PUBLIC_ID")
 SECRET_KEY = os.getenv("NUMERAI_SECRET_KEY")
-MODEL_ID = os.getenv("NUMERAI_MODEL_ID")  # Optional if you want to avoid hardcoding the model ID too
+MODEL_ID = os.getenv("NUMERAI_MODEL_ID")
 
 if not PUBLIC_ID or not SECRET_KEY or not MODEL_ID:
-    raise ValueError("Missing Numerai credentials. Set NUMERAI_PUBLIC_ID, NUMERAI_SECRET_KEY, and NUMERAI_MODEL_ID.")
+    raise ValueError("Missing Numerai credentials. Make sure .env is correctly set.")
+
 
 # Initialize Numerai API
 napi = numerapi.NumerAPI(public_id=PUBLIC_ID, secret_key=SECRET_KEY)
 
 def download_numerai_data():
-    print("Downloading latest Numerai dataset...")
-    napi.download_dataset("v4.2/train_int8.parquet", "train.parquet")
-    napi.download_dataset("v4.2/live_int8.parquet", "live.parquet")
+    print("Fetching dataset list from Numerai...")
+
+    datasets = napi.list_datasets()
+
+    print("Available datasets:")
+    for file in datasets:
+        print(file)
+
+    # Updated filters to match v5.0 file names
+    train_file = next(file for file in datasets if "train.parquet" in file and "v5" in file)
+    live_file = next(file for file in datasets if "live.parquet" in file and "v5" in file)
+
+    print(f"Downloading: {train_file}")
+    print(f"Downloading: {live_file}")
+
+    napi.download_dataset(train_file, "train.parquet")
+    napi.download_dataset(live_file, "live.parquet")
+
+    print("Download complete.")
 
 def load_features_and_live_data():
     df_train = pd.read_parquet("train.parquet")
